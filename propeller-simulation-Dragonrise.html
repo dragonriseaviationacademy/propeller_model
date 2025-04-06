@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Interactive Propeller Simulator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background-color: #f0f4f8;
+      color: #333;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+    .container {
+      max-width: 100%;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 15px;
+      overflow-x: hidden;
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 45%;
+    }
+    .control-label {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #34495e;
+    }
+    .value-display {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .throttle-stick {
+      width: 40px;
+      height: 150px;
+      background-color: #ddd;
+      border-radius: 5px;
+      position: relative;
+      margin: 0 auto;
+    }
+    .throttle-handle {
+      width: 50px;
+      height: 30px;
+      background-color: #444;
+      border-radius: 5px;
+      position: absolute;
+      left: -5px;
+      cursor: pointer;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      font-size: 12px;
+    }
+    .pitch-lever {
+      width: 40px;
+      height: 150px;
+      background-color: #ddd;
+      border-radius: 5px;
+      position: relative;
+      margin: 0 auto;
+    }
+    .pitch-handle {
+      width: 50px;
+      height: 30px;
+      background-color: #444;
+      border-radius: 5px;
+      position: absolute;
+      left: -5px;
+      cursor: pointer;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      font-size: 12px;
+    }
+    .visualization {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+      align-items: flex-start;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    @media (max-width: 650px) {
+      .visualization {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+    .propeller-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f7f9fc;
+    }
+    .propeller-center {
+      position: absolute;
+      left: 140px;
+      top: 140px;
+      width: 20px;
+      height: 20px;
+      background-color: #555;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+    .propeller-blade {
+      position: absolute;
+      left: 140px;
+      top: 140px;
+      width: 120px;
+      height: 20px;
+      background-color: #3498db;
+      transform-origin: 0 50%;
+      border-radius: 0 10px 10px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .blade1 {
+      z-index: 1;
+    }
+    .blade2 {
+      transform: rotate(180deg);
+      z-index: 0;
+    }
+    .metrics {
+      width: 280px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: #f7f9fc;
+    }
+    .metric-group {
+      margin-bottom: 12px;
+    }
+    .metric-title {
+      font-weight: bold;
+      margin-bottom: 3px;
+      color: #34495e;
+      font-size: 0.9rem;
+    }
+    .gauge {
+      height: 20px;
+      background-color: #ecf0f1;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .gauge-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+    .rpm-gauge-fill {
+      background-color: #3498db;
+    }
+    .thrust-gauge-fill {
+      background-color: #2ecc71;
+    }
+    .efficiency-gauge-fill {
+      background-color: #f39c12;
+    }
+    .torque-gauge-fill {
+      background-color: #e74c3c;
+    }
+    .manifold-gauge-fill {
+      background-color: #9b59b6;
+    }
+    .stall-warning {
+      color: #e74c3c;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+    .info-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+    .copyright {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: #7f8c8d;
+    }
+    .blade-angle-indicator {
+      position: absolute;
+      left: 140px;
+      top: 140px;
+      width: 120px;
+      height: 2px;
+      background-color: rgba(231, 76, 60, 0.5);
+      transform-origin: 0 50%;
+      z-index: 3;
+    }
+    .angle-indicator {
+      position: absolute;
+      left: 140px;
+      top: 140px;
+      width: 60px;
+      height: 60px;
+      border: 2px dashed rgba(52, 152, 219, 0.5);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+    }
+    .airflow-arrow {
+      position: absolute;
+      left: 50px;
+      top: 140px;
+      width: 60px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      color: #3498db;
+      font-weight: bold;
+    }
+    .airflow-arrow::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-left: 15px solid #3498db;
+    }
+    .airflow-arrow::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 15px;
+      height: 2px;
+      background-color: #3498db;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Interactive Propeller Simulator</h1>
+    
+    <div class="visualization">
+      <div class="propeller-container">
+        <div class="angle-indicator"></div>
+        <div class="airflow-arrow">AIR</div>
+        <div class="propeller-blade blade1" id="blade1"></div>
+        <div class="propeller-blade blade2" id="blade2"></div>
+        <div class="blade-angle-indicator" id="bladeAngleIndicator"></div>
+        <div class="propeller-center"></div>
+      </div>
+      
+      <div class="metrics">
+        <div class="metric-group">
+          <div class="metric-title">RPM</div>
+          <div class="value-display" id="rpmValue">1500 RPM</div>
+          <div class="gauge">
+            <div class="gauge-fill rpm-gauge-fill" id="rpmGauge" style="width: 50%;"></div>
+          </div>
+        </div>
+        
+        <div class="metric-group">
+          <div class="metric-title">Thrust</div>
+          <div class="value-display" id="thrustValue">Medium</div>
+          <div class="gauge">
+            <div class="gauge-fill thrust-gauge-fill" id="thrustGauge" style="width: 50%;"></div>
+          </div>
+        </div>
+        
+        <div class="metric-group">
+          <div class="metric-title">Efficiency</div>
+          <div class="value-display" id="efficiencyValue">Good</div>
+          <div class="gauge">
+            <div class="gauge-fill efficiency-gauge-fill" id="efficiencyGauge" style="width: 70%;"></div>
+          </div>
+        </div>
+        
+        <div class="metric-group">
+          <div class="metric-title">Engine Load</div>
+          <div class="value-display" id="torqueValue">Medium</div>
+          <div class="gauge">
+            <div class="gauge-fill torque-gauge-fill" id="torqueGauge" style="width: 50%;"></div>
+          </div>
+        </div>
+        
+        <div class="metric-group">
+          <div class="metric-title">Manifold Pressure</div>
+          <div class="value-display" id="manifoldValue">20 inHg</div>
+          <div class="gauge">
+            <div class="gauge-fill manifold-gauge-fill" id="manifoldGauge" style="width: 50%;"></div>
+          </div>
+        </div>
+        
+        <div class="stall-warning" id="stallWarning">WARNING: Propeller Stall Condition!</div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label">Throttle</div>
+        <div class="throttle-stick">
+          <div class="throttle-handle" id="throttleHandle">POWER</div>
+        </div>
+        <div class="value-display" id="throttleValue">50%</div>
+        <div style="margin-top: 5px; font-size: 12px;">↑ Max Power</div>
+        <div style="margin-top: 5px; font-size: 12px;">↓ Idle</div>
+      </div>
+      
+      <div class="control-group">
+        <div class="control-label">Propeller Pitch</div>
+        <div class="pitch-lever">
+          <div class="pitch-handle" id="pitchHandle">PITCH</div>
+        </div>
+        <div class="value-display" id="pitchValue">15°</div>
+        <div style="margin-top: 5px; font-size: 12px;">↑ Fine Pitch (High RPM)</div>
+        <div style="margin-top: 5px; font-size: 12px;">↓ Coarse Pitch (High Thrust)</div>
+      </div>
+    </div>
+    
+    <div class="info-panel">
+      <h3>How to Use This Simulator:</h3>
+      <p><strong>Throttle:</strong> Drag the throttle lever up or down to increase or decrease engine power.</p>
+      <p><strong>Pitch Control:</strong> Drag the pitch lever up or down to adjust the blade angle. Fine pitch (top position) allows higher RPM and better acceleration. Coarse pitch (bottom position) provides better climb performance.</p>
+      <p><strong>Takeoff Settings:</strong> Use full throttle with fine to medium pitch for initial acceleration. As airspeed builds, increasing pitch provides better climb performance.</p>
+      <p><strong>Cruise Settings:</strong> For maximum efficiency in cruise, match the pitch to your power setting - higher power generally works best with higher pitch angles.</p>
+      <p><strong>Watch for stall conditions:</strong> If pitch is too high (coarse) for the current power setting, the propeller blades will stall, reducing efficiency and thrust dramatically.</p>
+    </div>
+    
+    <div class="copyright">
+      Copyright © 2025 Dragonrise Aviation Academy. All rights reserved.
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const throttleHandle = document.getElementById('throttleHandle');
+    const pitchHandle = document.getElementById('pitchHandle');
+    const throttleValue = document.getElementById('throttleValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const blade1 = document.getElementById('blade1');
+    const blade2 = document.getElementById('blade2');
+    const bladeAngleIndicator = document.getElementById('bladeAngleIndicator');
+    const rpmValue = document.getElementById('rpmValue');
+    const rpmGauge = document.getElementById('rpmGauge');
+    const thrustValue = document.getElementById('thrustValue');
+    const thrustGauge = document.getElementById('thrustGauge');
+    const efficiencyValue = document.getElementById('efficiencyValue');
+    const efficiencyGauge = document.getElementById('efficiencyGauge');
+    const torqueValue = document.getElementById('torqueValue');
+    const torqueGauge = document.getElementById('torqueGauge');
+    const manifoldValue = document.getElementById('manifoldValue');
+    const manifoldGauge = document.getElementById('manifoldGauge');
+    const stallWarning = document.getElementById('stallWarning');
+    
+    // Initial values
+    let throttle = 50; // 0-100%
+    let pitch = 15;    // 5-30 degrees
+    let rotationAngle = 0;
+    let rotationSpeed = 5;
+    let animationId;
+    
+    // Throttle control
+    function initThrottle() {
+      const throttleStick = throttleHandle.parentElement;
+      const throttleStickHeight = throttleStick.offsetHeight;
+      const handleHeight = throttleHandle.offsetHeight;
+      const maxY = throttleStickHeight - handleHeight;
+      
+      // Set initial position
+      updateThrottlePosition(maxY * (1 - throttle/100));
+      
+      let isDragging = false;
+      
+      throttleHandle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const rect = throttleStick.getBoundingClientRect();
+        let y = e.clientY - rect.top - handleHeight/2;
+        
+        // Constrain to throttle stick
+        y = Math.max(0, Math.min(maxY, y));
+        
+        updateThrottlePosition(y);
+        throttle = 100 - (y / maxY * 100);
+        throttleValue.textContent = `${Math.round(throttle)}%`;
+        
+        updateSimulation();
+      });
+      
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+      
+      // Touch events
+      throttleHandle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        const touch = e.touches[0];
+        const rect = throttleStick.getBoundingClientRect();
+        let y = touch.clientY - rect.top - handleHeight/2;
+        
+        // Constrain to throttle stick
+        y = Math.max(0, Math.min(maxY, y));
+        
+        updateThrottlePosition(y);
+        throttle = 100 - (y / maxY * 100);
+        throttleValue.textContent = `${Math.round(throttle)}%`;
+        
+        updateSimulation();
+      });
+      
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+    }
+    
+    function updateThrottlePosition(y) {
+      throttleHandle.style.top = `${y}px`;
+    }
+    
+    // Pitch control
+    function initPitch() {
+      const pitchLever = pitchHandle.parentElement;
+      const pitchLeverHeight = pitchLever.offsetHeight;
+      const handleHeight = pitchHandle.offsetHeight;
+      const maxY = pitchLeverHeight - handleHeight;
+      
+      // Map pitch (5-30) to position with INVERSE relationship
+      // Fine pitch (5°) at top, Coarse pitch (30°) at bottom
+      const initialY = ((pitch - 5) / 25) * maxY;
+      updatePitchPosition(initialY);
+      
+      let isDragging = false;
+      
+      pitchHandle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const rect = pitchLever.getBoundingClientRect();
+        let y = e.clientY - rect.top - handleHeight/2;
+        
+        // Constrain to pitch lever
+        y = Math.max(0, Math.min(maxY, y));
+        
+        updatePitchPosition(y);
+        
+        // Inverse mapping: top = fine pitch (5°), bottom = coarse pitch (30°)
+        pitch = 5 + (y / maxY * 25);
+        pitchValue.textContent = `${Math.round(pitch)}°`;
+        
+        // Update blade angle indicator
+        bladeAngleIndicator.style.transform = `rotate(${pitch}deg)`;
+        
+        updateSimulation();
+      });
+      
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+      
+      // Touch events
+      pitchHandle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        const touch = e.touches[0];
+        const rect = pitchLever.getBoundingClientRect();
+        let y = touch.clientY - rect.top - handleHeight/2;
+        
+        // Constrain to pitch lever
+        y = Math.max(0, Math.min(maxY, y));
+        
+        updatePitchPosition(y);
+        
+        // Inverse mapping: top = fine pitch (5°), bottom = coarse pitch (30°)
+        pitch = 5 + (y / maxY * 25);
+        pitchValue.textContent = `${Math.round(pitch)}°`;
+        
+        // Update blade angle indicator
+        bladeAngleIndicator.style.transform = `rotate(${pitch}deg)`;
+        
+        updateSimulation();
+      });
+      
+      document.addEventListener('touchend', () => {
+        isDragging = false;
+      });
+    }
+    
+    function updatePitchPosition(y) {
+      pitchHandle.style.top = `${y}px`;
+    }
+    
+    // Propeller animation
+    function animatePropeller() {
+      // Calculate rotation speed based on throttle and pitch
+      // Higher pitch = slower rotation at same throttle
+      rotationSpeed = throttle * (1 - (pitch - 5) / 50);
+      
+      rotationAngle = (rotationAngle + rotationSpeed) % 360;
+      blade1.style.transform = `rotate(${rotationAngle}deg)`;
+      blade2.style.transform = `rotate(${rotationAngle + 180}deg)`;
+      
+      animationId = requestAnimationFrame(animatePropeller);
+    }
+    
+    // Update simulation metrics
+    function updateSimulation() {
+      try {
+        // RPM calculation (simplified)
+        const rpm = Math.round(throttle * (1 - (pitch - 5) / 50) * 30);
+        rpmValue.textContent = `${rpm} RPM`;
+        rpmGauge.style.width = `${throttle}%`;
+        
+        // THRUST CALCULATION
+        let thrustPercentage = 0;
+        
+        // For high throttle settings (takeoff/climb)
+        if (throttle > 75) {
+          // Fine pitch (5-15°) provides good initial acceleration
+          if (pitch <= 15) {
+            thrustPercentage = 75 + (throttle / 100) * 15;
+          } 
+          // Medium to coarse pitch (15-30°) provides maximum climb thrust
+          else {
+            thrustPercentage = 85 + (throttle / 100) * 15;
+          }
+        }
+        // For medium to low throttle settings (cruise/descent)
+        else {
+          // Calculate optimal pitch for current throttle
+          const optimalPitch = 5 + (throttle / 100) * 20;
+          const pitchDifference = Math.abs(pitch - optimalPitch);
+          
+          // Base thrust from throttle setting
+          const baseThrust = throttle * 0.8;
+          
+          // Adjust for pitch matching (optimal at cruise, less critical at takeoff)
+          const pitchMultiplier = (pitchDifference <= 7) ? 
+              (1 - pitchDifference / 14) : // Within optimal range
+              Math.max(0.5, 0.8 - (pitchDifference - 7) / 20); // Outside optimal range
+          
+          thrustPercentage = baseThrust * pitchMultiplier;
+        }
+        
+        // Set thrust text based on percentage
+        let thrustText;
+        if (thrustPercentage < 25) {
+          thrustText = "Low";
+        } else if (thrustPercentage < 50) {
+          thrustText = "Medium";
+        } else if (thrustPercentage < 80) {
+          thrustText = "High";
+        } else {
+          thrustText = "Maximum";
+        }
+        
+        thrustValue.textContent = thrustText;
+        thrustGauge.style.width = `${thrustPercentage}%`;
+        
+        // EFFICIENCY CALCULATION
+        let efficiency = 0;
+        
+        // High throttle (takeoff/climb)
+        if (throttle > 75) {
+          // Both fine and coarse are efficient at high throttle, for different purposes
+          efficiency = 85 + Math.min(15, throttle - 75) / 15 * 15;
+        }
+        // Medium to low throttle (cruise/descent)
+        else {
+          // Calculate optimal pitch for current throttle
+          const optimalPitch = 5 + (throttle / 100) * 20;
+          const pitchDifference = Math.abs(pitch - optimalPitch);
+          
+          // Efficiency drops off as pitch deviates from optimal
+          if (pitchDifference <= 7) {
+            efficiency = 100 - (pitchDifference / 7 * 20);
+          } else {
+            efficiency = Math.max(30, 80 - (pitchDifference - 7) * 3);
+          }
+        }
+        
+        // Set efficiency text
+        let efficiencyText;
+        if (efficiency < 40) {
+          efficiencyText = "Poor";
+          efficiencyValue.style.color = "#e74c3c";
+        } else if (efficiency < 70) {
+          efficiencyText = "Fair";
+          efficiencyValue.style.color = "#f39c12";
+        } else if (efficiency < 90) {
+          efficiencyText = "Good";
+          efficiencyValue.style.color = "#2ecc71";
+        } else {
+          efficiencyText = "Excellent";
+          efficiencyValue.style.color = "#27ae60";
+        }
+        
+        efficiencyValue.textContent = efficiencyText;
+        efficiencyGauge.style.width = `${efficiency}%`;
+        
+        // ENGINE LOAD/TORQUE CALCULATION
+        // Higher pitch requires more torque
+        const torquePercentage = Math.min(100, throttle * (pitch / 15) * 1.2);
+        let torqueText;
+        
+        if (torquePercentage < 33) {
+          torqueText = "Low";
+        } else if (torquePercentage < 66) {
+          torqueText = "Medium";
+        } else if (torquePercentage < 90) {
+          torqueText = "High";
+        } else {
+          torqueText = "Maximum";
+        }
+        
+        torqueValue.textContent = torqueText;
+        torqueGauge.style.width = `${torquePercentage}%`;
+        
+        // MANIFOLD PRESSURE CALCULATION
+        const basePressure = 10; // Minimum manifold pressure at idle
+        const maxPressure = 32;  // Maximum possible manifold pressure
+        
+        // Calculate manifold pressure based on throttle
+        let manifoldPressure = basePressure + (throttle / 100) * (maxPressure - basePressure);
+        
+        // Higher pitch at the same throttle creates more load, slightly reducing manifold pressure
+        const pitchEffect = (pitch - 15) * 0.1;
+        manifoldPressure = Math.max(basePressure, manifoldPressure - (pitchEffect * (throttle / 100)));
+        
+        const manifoldPercentage = ((manifoldPressure - basePressure) / (maxPressure - basePressure)) * 100;
+        
+        manifoldValue.textContent = `${manifoldPressure.toFixed(1)} inHg`;
+        manifoldGauge.style.width = `${manifoldPercentage}%`;
+        
+        // STALL CONDITION CHECK
+        // Propeller stalls at high (coarse) pitch and low throttle
+        if (pitch > 20 && throttle < 40) {
+          stallWarning.style.display = "block";
+        } else {
+          stallWarning.style.display = "none";
+        }
+      } catch (error) {
+        console.error("Error in simulation update:", error);
+      }
+    }
+    
+    // Initialize everything
+    function init() {
+      // Set initial blade angle
+      bladeAngleIndicator.style.transform = `rotate(${pitch}deg)`;
+      
+      initThrottle();
+      initPitch();
+      updateSimulation();
+      animatePropeller();
+    }
+    
+    // Start the simulator
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
